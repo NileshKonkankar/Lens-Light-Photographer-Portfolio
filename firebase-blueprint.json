@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "Photo": {
+      "title": "Photo",
+      "description": "A photograph in the portfolio",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string", "format": "uri", "description": "URL of the image" },
+        "title": { "type": "string", "description": "Title of the photo" },
+        "description": { "type": "string", "description": "Description of the photo" },
+        "category": { "type": "string", "description": "Category (e.g., Street, Portrait)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When it was uploaded" },
+        "authorId": { "type": "string", "description": "UID of the photographer" }
+      },
+      "required": ["url", "title", "createdAt", "authorId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the system (admin/photographer)",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "viewer"] }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/photos/{photoId}": {
+      "schema": "Photo",
+      "description": "Collection of all portfolio photos"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and roles"
+    }
+  }
+}

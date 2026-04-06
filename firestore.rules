@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: photos
+    // Fields:
+    //   - url: string (required) - Image URL
+    //   - title: string (required) - Photo title
+    //   - description: string (optional) - Photo description
+    //   - category: string (optional) - Category
+    //   - createdAt: timestamp (required) - Creation time
+    //   - authorId: string (required) - UID of the photographer
+    //
+    // Collection: users
+    // Fields:
+    //   - email: string (required) - User email
+    //   - role: string (required) - User role (admin, viewer)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "KonkankarNilesh@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
+    function isValidPhoto(data) {
+      return data.url is string && data.url.size() > 0 && data.url.size() < 2000 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.createdAt is timestamp &&
+             data.authorId == request.auth.uid;
+    }
+
+    function isValidUser(data) {
+      return data.email is string && data.role in ['admin', 'viewer'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /photos/{photoId} {
+      allow read: if true; // Public gallery
+      allow create: if isAdmin() && isValidPhoto(request.resource.data);
+      allow update: if isAdmin() && isValidPhoto(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'viewer';
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role;
+      allow delete: if isAdmin();
+    }
+  }
+}

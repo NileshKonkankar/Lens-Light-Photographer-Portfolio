@@ -1,13 +1,29 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocFromServer, doc } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, Auth } from 'firebase/auth';
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocFromServer, doc, Firestore } from 'firebase/firestore';
 
-// Initialize Firebase SDK
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth(app);
+export let app: FirebaseApp;
+export let db: Firestore;
+export let auth: Auth;
 export const googleProvider = new GoogleAuthProvider();
+
+export async function initFirebase() {
+  const res = await fetch('/api/firebase-config');
+  const config = await res.json();
+  
+  app = initializeApp(config);
+  db = getFirestore(app, config.firestoreDatabaseId);
+  auth = getAuth(app);
+  
+  // Connection test
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. ");
+    }
+  }
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -59,18 +75,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
-
-// Connection test
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. ");
-    }
-  }
-}
-testConnection();
 
 export { 
   collection, 

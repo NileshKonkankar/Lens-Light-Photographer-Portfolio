@@ -109,12 +109,6 @@ const Home = () => (
       </div>
       
       <div className="relative z-10 text-center space-y-6 px-4 mt-16 max-w-5xl mx-auto flex flex-col items-center">
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "40px" }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="w-[1px] bg-white/30 hidden md:block mb-8"
-        />
         
         <motion.h1 
           initial={{ opacity: 0, filter: "blur(12px)", y: 20 }}
@@ -291,9 +285,75 @@ const ImageCarousel = ({ photos }: { photos: Photo[] }) => {
   );
 };
 
+const PhotoModal = ({ photo, onClose }: { photo: Photo; onClose: () => void }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-black/95 backdrop-blur-md"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="max-w-6xl w-full bg-zinc-900 overflow-hidden relative shadow-2xl flex flex-col md:flex-row"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 p-2 bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="md:w-2/3 h-[50vh] md:h-[80vh] bg-black">
+          <img 
+            src={photo.url} 
+            alt={photo.title}
+            className="w-full h-full object-contain"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+
+        <div className="md:w-1/3 p-8 md:p-12 space-y-8 overflow-y-auto">
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-4xl font-serif italic tracking-tight">{photo.title}</h2>
+            {photo.category && (
+              <span className="inline-block px-3 py-1 border border-white/20 text-[10px] uppercase tracking-[0.3em] font-light">
+                {photo.category}
+              </span>
+            )}
+          </div>
+
+          <div className="prose prose-invert">
+            <p className="text-gray-400 font-light leading-relaxed text-sm md:text-base">
+              {photo.description || "No description provided for this artwork."}
+            </p>
+          </div>
+
+          <div className="pt-8 border-t border-white/10 space-y-4">
+            <div className="flex justify-between text-[10px] uppercase tracking-widest text-gray-500">
+              <span>Medium</span>
+              <span className="text-white">Digital Photography</span>
+            </div>
+            <div className="flex justify-between text-[10px] uppercase tracking-widest text-gray-500">
+              <span>Photographer</span>
+              <span className="text-white">Nilesh Konkankar</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 const Gallery = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'photos'), orderBy('createdAt', 'desc'));
@@ -312,14 +372,14 @@ const Gallery = () => {
   }, []);
 
   const dummyPhotos: Photo[] = [
-    { id: 'dummy-1', url: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=1000', title: 'Urban Elegance', category: 'Street', createdAt: new Date() },
-    { id: 'dummy-2', url: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=1000', title: 'City Shadows', category: 'Architecture', createdAt: new Date() },
-    { id: 'dummy-3', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1000', title: 'Portrait in Black', category: 'Portrait', createdAt: new Date() },
-    { id: 'dummy-4', url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=1000', title: 'Neon Nights', category: 'Street', createdAt: new Date() },
-    { id: 'dummy-5', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1000', title: 'Minimalist Spaces', category: 'Architecture', createdAt: new Date() },
-    { id: 'dummy-6', url: 'https://images.unsplash.com/photo-1506744626753-1fa44df31c7f?auto=format&fit=crop&q=80&w=1000', title: 'Morning Light', category: 'Landscape', createdAt: new Date() },
-    { id: 'dummy-7', url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1000', title: 'Code & Coffee', category: 'Lifestyle', createdAt: new Date() },
-    { id: 'dummy-8', url: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&q=80&w=1000', title: 'Abstract Elements', category: 'Abstract', createdAt: new Date() }
+    { id: 'dummy-1', url: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=1000', title: 'Urban Elegance', category: 'Street', description: 'A study of architectural symmetry in the modern urban landscape. Capturing the interplay of glass and concrete under soft morning light.', createdAt: new Date() },
+    { id: 'dummy-2', url: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=1000', title: 'City Shadows', category: 'Architecture', description: 'Exploring the hidden corners of the metropolis where shadows tell stories more compelling than the light itself.', createdAt: new Date() },
+    { id: 'dummy-3', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1000', title: 'Portrait in Black', category: 'Portrait', description: 'A minimalist portrait focusing on the depth of human expression, stripped of all distractions.', createdAt: new Date() },
+    { id: 'dummy-4', url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=1000', title: 'Neon Nights', category: 'Street', description: 'The vibrant pulse of the city after dark, where neon lights create a cinematic palette across rainy streets.', createdAt: new Date() },
+    { id: 'dummy-5', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1000', title: 'Minimalist Spaces', category: 'Architecture', description: 'Clean lines and negative space define this architectural study of modern dwelling.', createdAt: new Date() },
+    { id: 'dummy-6', url: 'https://images.unsplash.com/photo-1506744626753-1fa44df31c7f?auto=format&fit=crop&q=80&w=1000', title: 'Morning Light', category: 'Landscape', description: 'The first rays of sun breaking through the mist, illuminating the natural world in a golden hue.', createdAt: new Date() },
+    { id: 'dummy-7', url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1000', title: 'Code & Coffee', category: 'Lifestyle', description: 'The quiet moments of creativity and focus that define the modern work culture.', createdAt: new Date() },
+    { id: 'dummy-8', url: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&q=80&w=1000', title: 'Abstract Elements', category: 'Abstract', description: 'Focusing on textures and patterns found in everyday objects, re-contextualized through macro photography.', createdAt: new Date() }
   ];
 
   if (loading) {
@@ -356,7 +416,8 @@ const Gallery = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="overflow-hidden group relative mb-4 sm:mb-6 lg:mb-8"
+              className="overflow-hidden group relative mb-4 sm:mb-6 lg:mb-8 cursor-pointer"
+              onClick={() => setSelectedPhoto(photo)}
             >
               <img 
                 src={photo.url}
@@ -368,12 +429,22 @@ const Gallery = () => {
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
                 <h3 className="text-lg font-light">{photo.title}</h3>
                 {photo.category && <p className="text-xs uppercase tracking-widest text-gray-400">{photo.category}</p>}
+                <p className="text-[10px] uppercase tracking-widest text-white/50 mt-2">View Details</p>
               </div>
             </motion.div>
           ))}
           </Masonry>
         </>
       )}
+
+      <AnimatePresence>
+        {selectedPhoto && (
+          <PhotoModal 
+            photo={selectedPhoto} 
+            onClose={() => setSelectedPhoto(null)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -507,6 +578,7 @@ const Admin = () => {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -545,12 +617,14 @@ const Admin = () => {
         url,
         title,
         category,
+        description,
         createdAt: serverTimestamp(),
         authorId: user.uid
       });
       setUrl('');
       setTitle('');
       setCategory('');
+      setDescription('');
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'photos');
     } finally {
@@ -637,6 +711,16 @@ const Admin = () => {
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="Street / Portrait / Architecture"
                   className="w-full bg-black border border-zinc-800 p-3 text-sm focus:border-white outline-hidden transition-colors" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-widest text-gray-400">Description</label>
+                <textarea 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Detailed description of the artwork..."
+                  rows={4}
+                  className="w-full bg-black border border-zinc-800 p-3 text-sm focus:border-white outline-hidden transition-colors resize-none" 
                 />
               </div>
               <button 

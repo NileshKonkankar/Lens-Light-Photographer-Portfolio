@@ -402,7 +402,8 @@ const Gallery = () => {
           <ImageCarousel photos={displayPhotos} />
           <Masonry
             breakpointCols={{
-              default: 4,
+              default: 5,
+              1280: 4,
               1024: 3,
               768: 2,
               640: 1

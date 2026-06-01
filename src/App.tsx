@@ -1,7 +1,7 @@
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Camera, Menu, X, Instagram, Twitter, Mail, Plus, LogOut, Loader2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import React, { useState, useEffect, createContext, useContext, ReactNode, Component, ErrorInfo, FormEvent } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useRef, createContext, useContext, ReactNode, Component, ErrorInfo, FormEvent } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import Masonry from 'react-masonry-css';
 import { 
   auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged, 
@@ -89,102 +89,288 @@ const useAuth = () => useContext(AuthContext);
 
 // --- Components ---
 
-const Home = () => (
-  <div className="space-y-0">
-    <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
-      <div className="absolute inset-0 z-0">
-        <motion.img 
-          initial={{ scale: 1.1, opacity: 0 }}
-          animate={{ scale: 1.05, opacity: 0.6 }}
-          transition={{ 
-            opacity: { duration: 3 },
-            scale: { duration: 30, repeat: Infinity, repeatType: "reverse", ease: "linear" }
-          }}
-          src="https://images.unsplash.com/photo-1493863641943-9b68992a8d07?auto=format&fit=crop&q=80&w=2000" 
-          alt="Hero" 
-          className="w-full h-full object-cover"
+// --- Components ---
+
+const Interactive3DCard = ({ 
+  src, 
+  title, 
+  category, 
+  desc, 
+  direction = "center",
+  index = 0
+}: { 
+  src: string; 
+  title: string; 
+  category: string; 
+  desc: string; 
+  direction?: "left" | "right" | "center";
+  index?: number;
+}) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Scroll parallax progress local to the card viewport
+  const { scrollYProgress } = useScroll({
+    target: cardRef,
+    offset: ["start end", "end start"]
+  });
+
+  // Floating up parallax with staggered multiplier
+  const y = useTransform(scrollYProgress, [0, 1], [60 * (index + 1), -60 * (index + 1)]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.4, 1, 1, 0.4]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left - width / 2;
+    const mouseY = e.clientY - rect.top - height / 2;
+    
+    const rY = (mouseX / (width / 2)) * 12; // tilt degrees up to 12
+    const rX = -(mouseY / (height / 2)) * 12;
+    
+    setRotateX(rX);
+    setRotateY(rY);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setRotateX(0);
+    setRotateY(0);
+  };
+
+  const initialRotateY = direction === "left" ? 12 : direction === "right" ? -12 : 0;
+
+  return (
+    <motion.div
+      ref={cardRef}
+      style={{ 
+        y, 
+        opacity,
+        perspective: 1200,
+      }}
+      className="w-full"
+    >
+      <motion.div
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={handleMouseLeave}
+        animate={{
+          rotateX: isHovered ? rotateX : 0,
+          rotateY: isHovered ? rotateY : initialRotateY,
+          scale: isHovered ? 1.03 : 1,
+          z: isHovered ? 30 : 0
+        }}
+        transition={{ type: "spring", stiffness: 180, damping: 20 }}
+        className="w-full aspect-[4/5] sm:aspect-[3/4] relative bg-zinc-950 border border-white/5 group overflow-hidden shadow-2xl rounded-sm"
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        <motion.img
+          src={src}
+          alt={title}
+          className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 pointer-events-none"
           referrerPolicy="no-referrer"
+          loading="lazy"
+          style={{ transform: "translateZ(-20px) scale(1.15)" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black pointer-events-none" />
-      </div>
-      
-      <div className="relative z-10 text-center space-y-6 px-4 mt-16 max-w-5xl mx-auto flex flex-col items-center">
         
-        <motion.h1 
-          initial={{ opacity: 0, filter: "blur(12px)", y: 20 }}
-          animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-          transition={{ duration: 2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="text-6xl sm:text-8xl md:text-[9rem] font-serif italic tracking-tight text-white drop-shadow-2xl leading-none"
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none z-10" />
+
+        <div 
+          className="absolute inset-0 flex flex-col justify-end p-6 md:p-8 z-20 pointer-events-none"
+          style={{ transform: "translateZ(25px)" }}
         >
-          Lens & Light
-        </motion.h1>
-        
-        <motion.p 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 1.2, ease: "easeOut" }}
-          className="text-xs md:text-sm text-gray-300 font-light tracking-[0.4em] uppercase drop-shadow-md"
-        >
-          Capturing the essence of the moment
-        </motion.p>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 1.8, ease: "easeOut" }}
-          className="pt-12"
-        >
-          <Link 
-            to="/gallery" 
-            className="inline-block px-10 py-4 border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-500 tracking-[0.2em] text-xs uppercase backdrop-blur-sm"
+          <div className="space-y-3">
+            <span className="inline-block px-2.5 py-1 border border-white/15 text-[9px] uppercase tracking-[0.25em] font-light text-white/80 bg-black/40 backdrop-blur-xs">
+              {category}
+            </span>
+            <h3 className="text-2xl md:text-3xl font-serif tracking-tight text-white leading-tight">{title}</h3>
+            <p className="text-xs md:text-sm text-gray-400 font-light line-clamp-2 max-w-xs transition-colors group-hover:text-white/90">
+              {desc}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const Home = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
+
+  // Hero section scroll animations
+  const heroScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.88]);
+  const heroRotateX = useTransform(scrollYProgress, [0, 0.3], [0, -8]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
+  const heroImageScale = useTransform(scrollYProgress, [0, 0.35], [1.05, 1.25]);
+
+  return (
+    <div ref={containerRef} className="space-y-0 bg-black">
+      {/* 3D Parallax Hero Section */}
+      <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
+        <div className="absolute inset-0 z-0" style={{ perspective: "1500px" }}>
+          <motion.div 
+            style={{ 
+              scale: heroScale, 
+              rotateX: heroRotateX,
+              transformStyle: "preserve-3d"
+            }}
+            className="w-full h-full"
           >
-            View Portfolio
-          </Link>
+            <motion.img 
+              style={{ scale: heroImageScale }}
+              initial={{ scale: 1.1, opacity: 0 }}
+              animate={{ scale: 1.05, opacity: 0.6 }}
+              transition={{ duration: 2.5 }}
+              src="https://images.unsplash.com/photo-1493863641943-9b68992a8d07?auto=format&fit=crop&q=80&w=2000" 
+              alt="Hero" 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black pointer-events-none" />
+          </motion.div>
+        </div>
+        
+        <motion.div 
+          style={{ 
+            opacity: heroOpacity, 
+            y: useTransform(scrollYProgress, [0, 0.3], [0, -100]) 
+          }}
+          className="relative z-10 text-center space-y-6 px-4 mt-16 max-w-5xl mx-auto flex flex-col items-center"
+        >
+          <motion.h1 
+            initial={{ opacity: 0, filter: "blur(12px)", y: 20 }}
+            animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+            transition={{ duration: 2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="text-6xl sm:text-8xl md:text-[9rem] font-serif italic tracking-tight text-white drop-shadow-2xl leading-none"
+          >
+            Lens & Light
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, delay: 1.2, ease: "easeOut" }}
+            className="text-xs md:text-sm text-gray-300 font-light tracking-[0.4em] uppercase drop-shadow-md"
+          >
+            Capturing the essence of the moment
+          </motion.p>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, delay: 1.8, ease: "easeOut" }}
+            className="pt-12"
+          >
+            <Link 
+              to="/gallery" 
+              className="inline-block px-10 py-4 border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-500 tracking-[0.2em] text-xs uppercase backdrop-blur-sm"
+            >
+              View Portfolio
+            </Link>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Transitional Spacer for Smooth Visual Flow */}
+      <div className="w-full bg-black py-16 text-center relative z-10">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 1.5 }}
+          className="inline-flex flex-col items-center gap-3"
+        >
+          <span className="text-[10px] uppercase tracking-[0.4em] text-white/45">3D Spatial Exhibition</span>
+          <div className="w-20 h-[1.5px] bg-white/15" />
         </motion.div>
       </div>
 
-
-    </section>
-
-    <section className="max-w-7xl mx-auto px-4 py-24 md:py-32">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        <motion.div 
-          initial={{ opacity: 0, x: -30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          viewport={{ once: true, margin: "-100px" }}
-          className="space-y-6"
-        >
-          <h2 className="text-4xl font-serif tracking-tight">The Art of Seeing</h2>
-          <p className="text-gray-400 leading-relaxed font-light">
-            Photography is more than just clicking a button. It's about finding the story in the shadows, 
-            the emotion in the light, and the soul in the subject. Every frame is a testament to a 
-            moment that will never happen again.
-          </p>
-          <Link to="/about" className="text-sm uppercase tracking-widest border-b border-white/50 pb-1 inline-block hover:text-gray-300 transition-colors mt-4">
-            Learn More
-          </Link>
-        </motion.div>
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, delay: 0.2, ease: 'easeOut' }}
-          viewport={{ once: true, margin: "-100px" }}
-          className="aspect-square overflow-hidden"
-        >
-          <motion.img 
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.7 }}
-            src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?auto=format&fit=crop&q=80&w=1000" 
-            alt="About" 
-            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
-            referrerPolicy="no-referrer"
+      {/* Layered 3D Perspectives Section */}
+      <section className="max-w-7xl mx-auto px-6 py-20 pb-44">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 gap-y-24 items-start">
+          <Interactive3DCard 
+            src="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=1000"
+            title="Urban Shadows"
+            category="Street"
+            desc="Spontaneous frames preserving quiet human narratives inside ever-changing skylines."
+            direction="left"
+            index={0}
           />
-        </motion.div>
-      </div>
-    </section>
-  </div>
-);
+          <Interactive3DCard 
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1000"
+            title="The Human Profile"
+            category="Portrait"
+            desc="Stripped settings designed to honor real human connections and emotional depth."
+            direction="center"
+            index={1}
+          />
+          <Interactive3DCard 
+            src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?auto=format&fit=crop&q=80&w=1000"
+            title="Structural Symmetry"
+            category="Architecture"
+            desc="Exposing geometric balance, sharp contrast lines, and grand architectural monoliths."
+            direction="right"
+            index={2}
+          />
+        </div>
+      </section>
+
+      {/* Brand Ethos with Staggered Parallax Slide-in */}
+      <section className="max-w-7xl mx-auto px-6 py-24 md:py-36 border-t border-white/5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+          <motion.div 
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            viewport={{ once: true, margin: "-120px" }}
+            className="space-y-8"
+          >
+            <div className="space-y-4">
+              <span className="text-[10px] uppercase tracking-[0.4em] text-white/40 block">The Philosophy</span>
+              <h2 className="text-4xl md:text-5xl font-serif tracking-tight leading-tight">The Art of Seeing</h2>
+            </div>
+            
+            <p className="text-gray-400 leading-relaxed font-light text-base md:text-lg">
+              Photography is more than just clicking a button. It's about finding the story in the shadows, 
+              the hidden emotion in the light, and the soul in the subject. Every frame is a testament to a 
+              moment that will never happen again.
+            </p>
+            <div className="pt-4">
+              <Link to="/about" className="text-xs uppercase tracking-widest border-b border-white/30 pb-2 inline-block hover:text-white hover:border-white transition-all duration-300">
+                Learn More About The Artist
+              </Link>
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96, rotate: 1 }}
+            whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ duration: 1.4, ease: 'easeOut' }}
+            viewport={{ once: true, margin: "-120px" }}
+            className="aspect-square overflow-hidden bg-zinc-950 border border-white/5 relative group p-1"
+          >
+            <motion.img 
+              whileHover={{ scale: 1.04 }}
+              transition={{ duration: 0.8 }}
+              src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?auto=format&fit=crop&q=80&w=1000" 
+              alt="About Nilesh" 
+              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-[750ms]"
+              referrerPolicy="no-referrer"
+            />
+          </motion.div>
+        </div>
+      </section>
+    </div>
+  );
+};
 
 interface Photo {
   id: string;

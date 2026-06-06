@@ -568,20 +568,61 @@ const Gallery = () => {
     { id: 'dummy-8', url: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&q=80&w=1000', title: 'Abstract Elements', category: 'Abstract', description: 'Focusing on textures and patterns found in everyday objects, re-contextualized through macro photography.', createdAt: new Date() }
   ];
 
-  if (loading) {
-    return (
-      <div className="pt-32 flex justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-      </div>
-    );
-  }
-
   const displayPhotos = photos.length > 0 ? photos : dummyPhotos;
+
+  const skeletonHeights = [
+    'h-[320px]',
+    'h-[420px]',
+    'h-[260px]',
+    'h-[380px]',
+    'h-[300px]',
+    'h-[400px]',
+    'h-[280px]',
+    'h-[360px]',
+    'h-[330px]',
+    'h-[410px]'
+  ];
 
   return (
     <div className="pt-32 pb-20 max-w-7xl mx-auto px-4">
       <h1 className="text-5xl font-light mb-12 tracking-tight">Portfolio</h1>
-      {displayPhotos.length === 0 ? (
+      
+      {loading ? (
+        <>
+          {/* Skeleton Carousel */}
+          <div className="relative w-full h-[60vh] overflow-hidden mb-16 bg-zinc-950/40 border border-white/5 animate-pulse flex flex-col justify-end p-8 md:p-12">
+            <div className="space-y-4">
+              <div className="h-8 md:h-12 bg-zinc-900 rounded w-1/2 md:w-1/3" />
+              <div className="h-4 bg-zinc-900 rounded w-1/4 md:w-1/6" />
+            </div>
+          </div>
+
+          {/* Skeleton Masonry Portfolio Grid */}
+          <Masonry
+            breakpointCols={{
+              default: 5,
+              1280: 4,
+              1024: 3,
+              768: 2,
+              640: 1
+            }}
+            className="flex w-auto -ml-4 sm:-ml-6 lg:-ml-8"
+            columnClassName="pl-4 sm:pl-6 lg:pl-8 bg-clip-padding"
+          >
+            {skeletonHeights.map((height, idx) => (
+              <div
+                key={`skeleton-${idx}`}
+                className={`overflow-hidden relative mb-4 sm:mb-6 lg:mb-8 bg-zinc-950/40 border border-white/5 animate-pulse rounded-sm ${height} flex flex-col justify-end p-6`}
+              >
+                <div className="space-y-3">
+                  <div className="h-5 bg-zinc-900 rounded w-3/4" />
+                  <div className="h-3.5 bg-zinc-900 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </Masonry>
+        </>
+      ) : displayPhotos.length === 0 ? (
         <p className="text-gray-500 text-center py-20">No photos in the gallery yet.</p>
       ) : (
         <>

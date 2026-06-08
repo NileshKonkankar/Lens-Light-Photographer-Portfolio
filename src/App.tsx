@@ -536,6 +536,54 @@ const PhotoModal = ({ photo, onClose }: { photo: Photo; onClose: () => void }) =
   );
 };
 
+const GalleryItem = ({ 
+  photo, 
+  onClick 
+}: { 
+  photo: Photo; 
+  onClick: () => void;
+  key?: React.Key;
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete) {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className="overflow-hidden group relative mb-4 sm:mb-6 lg:mb-8 cursor-pointer rounded-sm bg-zinc-950/20"
+      onClick={onClick}
+    >
+      <div className={`absolute inset-0 bg-zinc-900/40 border border-white/5 animate-pulse transition-opacity duration-700 ${isLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} />
+      
+      <img 
+        ref={imgRef}
+        src={photo.url}
+        alt={photo.title}
+        onLoad={() => setIsLoaded(true)}
+        className={`w-full h-auto grayscale group-hover:grayscale-0 group-hover:scale-105 block transition-all duration-[800ms] ${
+          isLoaded ? 'opacity-100 blur-none' : 'opacity-0 blur-md'
+        }`}
+        referrerPolicy="no-referrer"
+        loading="lazy"
+      />
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
+        <h3 className="text-lg font-light">{photo.title}</h3>
+        {photo.category && <p className="text-xs uppercase tracking-widest text-gray-400">{photo.category}</p>}
+        <p className="text-[10px] uppercase tracking-widest text-white/50 mt-2">View Details</p>
+      </div>
+    </motion.div>
+  );
+};
+
 const Gallery = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -639,27 +687,11 @@ const Gallery = () => {
             columnClassName="pl-4 sm:pl-6 lg:pl-8 bg-clip-padding"
           >
           {displayPhotos.map((photo) => (
-            <motion.div 
-              key={photo.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              className="overflow-hidden group relative mb-4 sm:mb-6 lg:mb-8 cursor-pointer"
-              onClick={() => setSelectedPhoto(photo)}
-            >
-              <img 
-                src={photo.url}
-                alt={photo.title}
-                className="w-full h-auto grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 block"
-                referrerPolicy="no-referrer"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
-                <h3 className="text-lg font-light">{photo.title}</h3>
-                {photo.category && <p className="text-xs uppercase tracking-widest text-gray-400">{photo.category}</p>}
-                <p className="text-[10px] uppercase tracking-widest text-white/50 mt-2">View Details</p>
-              </div>
-            </motion.div>
+            <GalleryItem 
+              key={photo.id} 
+              photo={photo} 
+              onClick={() => setSelectedPhoto(photo)} 
+            />
           ))}
           </Masonry>
         </>
